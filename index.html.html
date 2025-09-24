@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WhatsApp System Design</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .presentation-container {
+        max-width: 1200px;
+        width: 100%;
+        height: 90vh;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .slides-wrapper {
+        flex: 1;
+        overflow-y: auto;
+        position: relative;
+      }
+
+      .slide {
+        display: none;
+        padding: 60px;
+        min-height: 100%;
+        position: relative;
+        animation: fadeIn 0.5s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .slide.active {
+        display: block;
+      }
+
+      .slide h1 {
+        color: #25d366;
+        font-size: 2.5em;
+        margin-bottom: 30px;
+        text-align: center;
+        border-bottom: 3px solid #25d366;
+        padding-bottom: 15px;
+      }
+
+      .slide h2 {
+        color: #128c7e;
+        font-size: 2em;
+        margin-bottom: 25px;
+        border-left: 5px solid #25d366;
+        padding-left: 15px;
+      }
+
+      .slide h3 {
+        color: #075e54;
+        font-size: 1.4em;
+        margin: 20px 0 15px 0;
+      }
+
+      .slide p,
+      .slide li {
+        color: #333;
+        font-size: 1.1em;
+        line-height: 1.6;
+        margin-bottom: 12px;
+      }
+
+      .slide ul {
+        margin-left: 25px;
+        margin-bottom: 20px;
+      }
+
+      .architecture-diagram {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 25px 0;
+        text-align: center;
+        border: 2px solid #e9ecef;
+      }
+
+      .component-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 20px 0;
+        flex-wrap: wrap;
+      }
+
+      .component {
+        background: #25d366;
+        color: white;
+        padding: 15px 25px;
+        margin: 10px;
+        border-radius: 10px;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        min-width: 150px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .component:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(37, 211, 102, 0.4);
+      }
+
+      .component.client {
+        background: #128c7e;
+      }
+
+      .component.server {
+        background: #25d366;
+      }
+
+      .component.database {
+        background: #075e54;
+      }
+
+      .component.external {
+        background: #34b7f1;
+      }
+
+      .arrow {
+        font-size: 2em;
+        color: #666;
+        margin: 0 15px;
+      }
+
+      .er-diagram {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 30px;
+        margin: 25px 0;
+        text-align: center;
+      }
+
+      .entity {
+        background: #fff;
+        border: 2px solid #25d366;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px;
+        display: inline-block;
+        min-width: 120px;
+        transition: transform 0.3s ease;
+      }
+
+      .entity:hover {
+        transform: scale(1.05);
+      }
+
+      .entity-title {
+        font-weight: bold;
+        color: #25d366;
+        border-bottom: 1px solid #25d366;
+        padding-bottom: 5px;
+        margin-bottom: 10px;
+      }
+
+      .api-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      .api-endpoint {
+        background: white;
+        border-left: 4px solid #25d366;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 0 8px 8px 0;
+        transition: transform 0.3s ease;
+      }
+
+      .api-endpoint:hover {
+        transform: translateX(5px);
+      }
+
+      .method {
+        background: #25d366;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 4px;
+        font-size: 0.9em;
+        font-weight: bold;
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+
+      .security-feature {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        transition: transform 0.3s ease;
+      }
+
+      .security-feature:hover {
+        transform: translateY(-3px);
+      }
+
+      .performance-metric {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+        transition: transform 0.3s ease;
+      }
+
+      .performance-metric:hover {
+        transform: translateY(-3px);
+      }
+
+      .navigation {
+        position: sticky;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        border-top: 1px solid #e0e0e0;
+        z-index: 100;
+      }
+
+      .nav-btn {
+        background: #25d366;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+
+      .nav-btn:hover {
+        background: #128c7e;
+        transform: translateY(-2px);
+      }
+
+      .nav-btn:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .slide-number {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        background: #25d366;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+      }
+
+      .highlight-box {
+        background: #e8f5e8;
+        border: 2px solid #25d366;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+        position: relative;
+      }
+
+      .highlight-box::before {
+        content: "💡";
+        position: absolute;
+        top: -15px;
+        left: 20px;
+        background: white;
+        padding: 0 10px;
+        font-size: 1.5em;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin: 25px 0;
+      }
+
+      .feature-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      .whatsapp-logo {
+        color: #25d366;
+        margin-bottom: 2px;
+        font-size: 10em;
+      }
+
+      .progress-bar {
+        position: sticky;
+        top: 0;
+        left: 0;
+        height: 5px;
+        background: #25d366;
+        transition: width 0.3s ease;
+        z-index: 100;
+      }
+
+      .slide-indicators {
+        position: sticky;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+        z-index: 10;
+        justify-content: center;
+        margin-bottom: 10px;
+      }
+
+      .slide-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #25d366;
+      }
+
+      .slide-indicator.active {
+        background: #25d366;
+        transform: scale(1.2);
+      }
+
+      .slide-controls {
+        position: fixed;
+        top: 50%;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 20px;
+        transform: translateY(-50%);
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .slide-control {
+        background: rgba(255, 255, 255, 0.8);
+        border: none;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5em;
+        cursor: pointer;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        pointer-events: all;
+        transition: all 0.3s ease;
+      }
+
+      .slide-control:hover {
+        background: white;
+        transform: scale(1.1);
+      }
+
+      .slide-control:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        .presentation-container {
+          height: 95vh;
+          border-radius: 10px;
+        }
+
+        .slide {
+          padding: 30px 20px;
+        }
+
+        .slide h1 {
+          font-size: 2em;
+        }
+
+        .slide h2 {
+          font-size: 1.6em;
+        }
+
+        .component-row {
+          flex-direction: column;
+        }
+
+        .arrow {
+          transform: rotate(90deg);
+          margin: 10px 0;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .navigation {
+          padding: 10px;
+        }
+
+        .nav-btn {
+          padding: 10px 20px;
+          font-size: 0.9em;
+        }
+
+        .slide-controls {
+          padding: 0 10px;
+        }
+
+        .slide-control {
+          width: 40px;
+          height: 40px;
+          font-size: 1.2em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="presentation-container">
+      <div class="progress-bar" id="progressBar"></div>
+
+      <div class="slide-controls">
+        <button
+          class="slide-control"
+          id="prevSlide"
+          aria-label="Previous slide"
+        >
+          ←
+        </button>
+        <button class="slide-control" id="nextSlide" aria-label="Next slide">
+          →
+        </button>
+      </div>
+
+      <div class="slides-wrapper">
+        <div class="slide-indicators" id="slideIndicators"></div>
+
+        <!-- Slide 1: Title -->
+        <div class="slide active">
+          <div class="slide-number">1/9</div>
+          <div style="text-align: center; padding-top: 50px">
+            <div class="whatsapp-logo">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="50"
+                height="50"
+                fill="currentColor"
+                class="bi bi-whatsapp"
+                viewBox="0 0 17 17"
+              >
+                <path
+                  d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"
+                />
+              </svg>
+            </div>
+            <h1 style="font-size: 3.5em; margin-bottom: 20px">WhatsApp</h1>
+            <h2
+              style="
+                font-size: 2em;
+                color: #128c7e;
+                border: none;
+                text-align: center;
+                margin-bottom: 40px;
+              "
+            >
+              System Design Analysis
+            </h2>
+            <p style="font-size: 1.3em; color: #666; text-align: center">
+              Understanding the Architecture Behind 2+ Billion Users
+            </p>
+            <p
+              style="
+                font-size: 1.1em;
+                color: #999;
+                text-align: center;
+                margin-top: 40px;
+              "
+            >
+              A Deep Dive into Messaging Efficiency & Privacy-First Design
+              <br />
+              <br />
+              <strong>Presentation by</strong>: Nelson Ador <br />
+              <em>Software Eng. Student @Codetrain</em>
+              Africa.
+            </p>
+          </div>
+        </div>
+
+        <!-- Slide 2: App Overview -->
+        <div class="slide">
+          <div class="slide-number">2/9</div>
+          <h1>App Overview</h1>
+
+          <h2>📱 Application Name</h2>
+          <p>
+            <strong>WhatsApp Messenger</strong> - The world's most popular
+            messaging platform
+          </p>
+
+          <h2>🎯 Purpose</h2>
+          <p>
+            Cross-platform instant messaging application enabling secure,
+            real-time communication through internet connectivity with a focus
+            on privacy and simplicity.
+          </p>
+
+          <h2>⭐ Main Features & Functionality</h2>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h3>💬 Messaging</h3>
+              <p>Real-time text messages with delivery receipts</p>
+            </div>
+            <div class="feature-card">
+              <h3>📞 Voice & Video Calls</h3>
+              <p>High-quality audio/video communication</p>
+            </div>
+            <div class="feature-card">
+              <h3>📎 Media Sharing</h3>
+              <p>Photos, videos, documents, voice messages</p>
+            </div>
+            <div class="feature-card">
+              <h3>👥 Group Chats</h3>
+              <p>Up to 1024 participants per group</p>
+            </div>
+            <div class="feature-card">
+              <h3>📍 Location Sharing</h3>
+              <p>Real-time and static location sharing</p>
+            </div>
+            <div class="feature-card">
+              <h3>🔒 End-to-End Encryption</h3>
+              <p>All communications encrypted by default</p>
+            </div>
+          </div>
+
+          <h2>👥 Target Users</h2>
+          <ul>
+            <li>
+              <strong>Primary:</strong> Individual users worldwide (2+ billion
+              active users)
+            </li>
+            <li>
+              <strong>Secondary:</strong> Small businesses via WhatsApp Business
+            </li>
+            <li>
+              <strong>Tertiary:</strong> Large enterprises through WhatsApp
+              Business API
+            </li>
+          </ul>
+        </div>
+
+        <!-- Slide 3: High-Level Architecture -->
+        <div class="slide">
+          <div class="slide-number">3/9</div>
+          <h1>High-Level Architecture</h1>
+
+          <div class="architecture-diagram">
+            <h3>Client Layer</h3>
+            <div class="component-row">
+              <div class="component client">
+                📱 Mobile Apps<br />(iOS/Android)
+              </div>
+              <div class="component client">💻 Web Client<br />(Browser)</div>
+              <div class="component client">
+                🖥️ Desktop Apps<br />(Windows/Mac)
+              </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <h3>Load Balancing Layer</h3>
+            <div class="component-row">
+              <div class="component server">
+                🌐 Global Load Balancer<br />(Erlang-based Distribution)
+              </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <h3>Server Layer</h3>
+            <div class="component-row">
+              <div class="component server">
+                💬 Chat Servers<br />(Message Routing)
+              </div>
+              <div class="component server">
+                🎵 Media Servers<br />(File Processing)
+              </div>
+              <div class="component server">
+                📞 Call Servers<br />(Voice/Video)
+              </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <h3>Data Layer</h3>
+            <div class="component-row">
+              <div class="component database">
+                🗄️ Database Layer<br />(Metadata Only)
+              </div>
+            </div>
+
+            <div class="arrow">⬇️</div>
+
+            <h3>External Services</h3>
+            <div class="component-row">
+              <div class="component external">🔔 Push Notifications</div>
+              <div class="component external">☁️ Backup Services</div>
+              <div class="component external">🔧 Third-party Integrations</div>
+            </div>
+          </div>
+
+          <h2>Component Interactions</h2>
+          <ul>
+            <li>
+              <strong>Clients:</strong> Handle UI, local encryption/decryption,
+              and local message storage
+            </li>
+            <li>
+              <strong>Load Balancer:</strong> Distributes traffic globally using
+              Erlang systems
+            </li>
+            <li>
+              <strong>Chat Servers:</strong> Route messages, manage presence,
+              handle delivery confirmations
+            </li>
+            <li>
+              <strong>Media Servers:</strong> Process and deliver media with
+              compression
+            </li>
+            <li>
+              <strong>Database:</strong> Stores user metadata only - NO message
+              content
+            </li>
+          </ul>
+        </div>
+
+        <!-- Slide 4: Database Design -->
+        <div class="slide">
+          <div class="slide-number">4/9</div>
+          <h1>Database Design</h1>
+
+          <h2>Main Entities</h2>
+          <div class="er-diagram">
+            <div class="entity">
+              <div class="entity-title">User</div>
+              <div>user_id (PK)</div>
+              <div>phone_number</div>
+              <div>profile_name</div>
+              <div>last_seen</div>
+              <div>device_info</div>
+            </div>
+
+            <div class="entity">
+              <div class="entity-title">Contact</div>
+              <div>contact_id (PK)</div>
+              <div>user_id (FK)</div>
+              <div>contact_user_id (FK)</div>
+              <div>contact_name</div>
+              <div>added_date</div>
+            </div>
+
+            <div class="entity">
+              <div class="entity-title">Group</div>
+              <div>group_id (PK)</div>
+              <div>group_name</div>
+              <div>created_by (FK)</div>
+              <div>created_date</div>
+              <div>max_participants</div>
+            </div>
+
+            <div class="entity">
+              <div class="entity-title">Group_Member</div>
+              <div>member_id (PK)</div>
+              <div>group_id (FK)</div>
+              <div>user_id (FK)</div>
+              <div>role</div>
+              <div>joined_date</div>
+            </div>
+
+            <div class="entity">
+              <div class="entity-title">Message_Metadata</div>
+              <div>message_id (PK)</div>
+              <div>sender_id (FK)</div>
+              <div>timestamp</div>
+              <div>message_type</div>
+              <div>delivery_status</div>
+              <div><strong>NO CONTENT!</strong></div>
+            </div>
+          </div>
+
+          <h2>Key Relationships</h2>
+          <ul>
+            <li>
+              <strong>User ↔ Contact:</strong> One-to-Many (one user has many
+              contacts)
+            </li>
+            <li>
+              <strong>User ↔ Group:</strong> Many-to-Many (through Group_Member
+              table)
+            </li>
+            <li>
+              <strong>User ↔ Message_Metadata:</strong> One-to-Many (one user
+              sends many messages)
+            </li>
+            <li>
+              <strong>Group ↔ Message_Metadata:</strong> One-to-Many (one group
+              has many messages)
+            </li>
+          </ul>
+
+          <div class="highlight-box">
+            <h3>🔒 Critical Privacy Feature</h3>
+            <p>
+              <strong
+                >WhatsApp does NOT store actual message content on
+                servers!</strong
+              >
+            </p>
+            <p>
+              Messages are stored locally on user devices only, encrypted
+              end-to-end during transmission, and temporarily held on servers
+              only for delivery (deleted immediately after delivery).
+            </p>
+          </div>
+        </div>
+
+        <!-- Slide 5: APIs & Endpoints -->
+        <div class="slide">
+          <div class="slide-number">5/9</div>
+          <h1>APIs & Endpoints</h1>
+
+          <div class="api-section">
+            <h2>Authentication APIs</h2>
+            <div class="api-endpoint">
+              <div class="method">POST</div>
+              <strong>/api/v1/auth/request-verification</strong>
+              <p>
+                <strong>Purpose:</strong> Request SMS/voice verification for
+                phone number
+              </p>
+              <p><strong>Request:</strong> phone_number, verification_method</p>
+              <p><strong>Response:</strong> verification_id, success_status</p>
+            </div>
+
+            <div class="api-endpoint">
+              <div class="method">POST</div>
+              <strong>/api/v1/auth/verify-code</strong>
+              <p>
+                <strong>Purpose:</strong> Verify authentication code and
+                complete login
+              </p>
+              <p><strong>Request:</strong> verification_id, code, device_id</p>
+              <p>
+                <strong>Response:</strong> auth_token, user_id, success_status
+              </p>
+            </div>
+          </div>
+
+          <div class="api-section">
+            <h2>Messaging APIs</h2>
+            <div class="api-endpoint">
+              <div class="method">POST</div>
+              <strong>/api/v1/messages/send</strong>
+              <p>
+                <strong>Purpose:</strong> Send encrypted message to recipient
+              </p>
+              <p>
+                <strong>Request:</strong> recipient_id, encrypted_content,
+                message_type
+              </p>
+              <p><strong>Response:</strong> message_id, delivery_status</p>
+            </div>
+
+            <div class="api-endpoint">
+              <div class="method">GET</div>
+              <strong>/api/v1/messages/status/{message_id}</strong>
+              <p><strong>Purpose:</strong> Get message delivery/read status</p>
+              <p><strong>Response:</strong> delivery_status, read_timestamp</p>
+            </div>
+          </div>
+
+          <div class="api-section">
+            <h2>Group & Media APIs</h2>
+            <div class="api-endpoint">
+              <div class="method">POST</div>
+              <strong>/api/v1/groups/create</strong>
+              <p><strong>Purpose:</strong> Create new group chat</p>
+              <p>
+                <strong>Request:</strong> group_name, description,
+                participants_list
+              </p>
+              <p><strong>Response:</strong> group_id, success_status</p>
+            </div>
+
+            <div class="api-endpoint">
+              <div class="method">POST</div>
+              <strong>/api/v1/media/upload</strong>
+              <p><strong>Purpose:</strong> Upload encrypted media files</p>
+              <p><strong>Request:</strong> encrypted_file, recipient_id</p>
+              <p><strong>Response:</strong> media_id, download_url</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 6: User Interface -->
+        <div class="slide">
+          <div class="slide-number">6/9</div>
+          <h1>User Interface Design</h1>
+
+          <h2>Key Screen Layouts</h2>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h3>💬 Chat List Screen</h3>
+              <ul style="text-align: left">
+                <li>Recent conversations list</li>
+                <li>Unread message indicators</li>
+                <li>Last message preview</li>
+                <li>Contact profile pictures</li>
+                <li>Search functionality</li>
+                <li>New chat/group buttons</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h3>👤 Individual Chat Screen</h3>
+              <ul style="text-align: left">
+                <li>Message bubbles (sent/received)</li>
+                <li>Status indicators (✓✓)</li>
+                <li>Media sharing controls</li>
+                <li>Voice message recording</li>
+                <li>Call initiation buttons</li>
+                <li>Message composer</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h3>👥 Group Chat Screen</h3>
+              <ul style="text-align: left">
+                <li>Similar to individual chat</li>
+                <li>Participant identification</li>
+                <li>Group info access</li>
+                <li>Admin controls</li>
+                <li>Member management</li>
+                <li>Group settings</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <h3>📸 Status Screen</h3>
+              <ul style="text-align: left">
+                <li>Contact status updates</li>
+                <li>Camera integration</li>
+                <li>Status creation tools</li>
+                <li>Viewers list</li>
+                <li>Privacy controls</li>
+                <li>My Status section</li>
+              </ul>
+            </div>
+          </div>
+
+          <h2>User Interaction Flow</h2>
+          <div class="highlight-box">
+            <h3>Typical User Journey</h3>
+            <p>
+              <strong>1. Authentication:</strong> Phone number verification →
+              Profile setup
+            </p>
+            <p>
+              <strong>2. Contact Discovery:</strong> Access contacts → Import
+              phone numbers → Start conversations
+            </p>
+            <p>
+              <strong>3. Messaging:</strong> Send text/media → Real-time
+              delivery → Read receipts
+            </p>
+            <p>
+              <strong>4. Group Communication:</strong> Create groups → Add
+              participants → Manage settings
+            </p>
+            <p>
+              <strong>5. Calls:</strong> Initiate voice/video calls → Real-time
+              communication
+            </p>
+          </div>
+
+          <h2>Design Principles</h2>
+          <ul>
+            <li>
+              <strong>Simplicity:</strong> Clean, intuitive interface focusing
+              on core messaging
+            </li>
+            <li>
+              <strong>Accessibility:</strong> Support for multiple languages and
+              screen readers
+            </li>
+            <li>
+              <strong>Consistency:</strong> Uniform design across all platforms
+              (mobile, web, desktop)
+            </li>
+            <li>
+              <strong>Performance:</strong> Fast loading times and smooth
+              animations
+            </li>
+          </ul>
+        </div>
+
+        <!-- Slide 7: Security Considerations -->
+        <div class="slide">
+          <div class="slide-number">7/9</div>
+          <h1>Security Considerations</h1>
+
+          <div class="security-feature">
+            <h3>🔐 End-to-End Encryption (Signal Protocol)</h3>
+            <ul>
+              <li>
+                <strong>Perfect Forward Secrecy:</strong> New encryption keys
+                for each session
+              </li>
+              <li>
+                <strong>Automatic Key Exchange:</strong> Seamless key generation
+                and distribution
+              </li>
+              <li>
+                <strong>Server-Side Blindness:</strong> Servers cannot decrypt
+                messages
+              </li>
+              <li>
+                <strong>Double Ratchet:</strong> Advanced encryption with key
+                rotation
+              </li>
+            </ul>
+          </div>
+
+          <div class="security-feature">
+            <h3>🔑 Authentication & Authorization</h3>
+            <ul>
+              <li>
+                <strong>Phone Number Verification:</strong> Primary
+                authentication method
+              </li>
+              <li>
+                <strong>Two-Step Verification:</strong> Optional PIN for
+                additional security
+              </li>
+              <li>
+                <strong>Device Registration:</strong> Unique encryption keys per
+                device
+              </li>
+              <li>
+                <strong>Session Management:</strong> JWT tokens for API access
+                control
+              </li>
+            </ul>
+          </div>
+
+          <div class="security-feature">
+            <h3>🛡️ Data Privacy Measures</h3>
+            <ul>
+              <li>
+                <strong>Minimal Data Collection:</strong> Only essential
+                metadata stored
+              </li>
+              <li>
+                <strong>Local Storage:</strong> All chat history on user devices
+                only
+              </li>
+              <li>
+                <strong>No Message Logging:</strong> Messages deleted after
+                delivery
+              </li>
+              <li>
+                <strong>Encrypted Backups:</strong> Optional local backup
+                encryption
+              </li>
+            </ul>
+          </div>
+
+          <div class="security-feature">
+            <h3>⚡ Additional Security Features</h3>
+            <ul>
+              <li>
+                <strong>Disappearing Messages:</strong> Auto-delete after
+                specified time
+              </li>
+              <li>
+                <strong>View Once Media:</strong> Self-destructing photos/videos
+              </li>
+              <li>
+                <strong>Blocked Contacts:</strong> Prevent unwanted
+                communications
+              </li>
+              <li>
+                <strong>Report & Block:</strong> Community-based spam detection
+              </li>
+            </ul>
+          </div>
+
+          <div class="highlight-box">
+            <h3>🤔 Why Not Cloud Storage Like Other Apps?</h3>
+            <ul>
+              <li>
+                <strong>Privacy by Design:</strong> WhatsApp literally cannot
+                access your messages
+              </li>
+              <li>
+                <strong>Legal Protection:</strong> Cannot comply with data
+                requests for content
+              </li>
+              <li>
+                <strong>User Trust:</strong> Builds confidence in privacy
+                protection
+              </li>
+              <li>
+                <strong>Regulatory Compliance:</strong> Meets strict privacy
+                laws (GDPR, etc.)
+              </li>
+              <li>
+                <strong>Resource Efficiency:</strong> Reduces server costs and
+                complexity
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Slide 8: Scalability & Performance -->
+        <div class="slide">
+          <div class="slide-number">8/9</div>
+          <h1>Scalability & Performance</h1>
+
+          <h2>🚀 Handling Massive Scale (2+ Billion Users)</h2>
+
+          <div class="performance-metric">
+            <h3>⚡ Message Routing Efficiency</h3>
+            <ul>
+              <li>
+                <strong>Erlang/OTP Platform:</strong> Lightweight processes
+                handle millions of connections
+              </li>
+              <li>
+                <strong>Connection Pooling:</strong> Persistent connections
+                reduce overhead
+              </li>
+              <li>
+                <strong>Message Queuing:</strong> Temporary storage for offline
+                delivery
+              </li>
+              <li>
+                <strong>Geographic Distribution:</strong> Regional servers
+                minimize latency
+              </li>
+            </ul>
+          </div>
+
+          <div class="performance-metric">
+            <h3>🗄️ Database Optimization</h3>
+            <ul>
+              <li>
+                <strong>Horizontal Sharding:</strong> User data distributed
+                across multiple databases
+              </li>
+              <li>
+                <strong>Read Replicas:</strong> Separate read/write operations
+                for performance
+              </li>
+              <li>
+                <strong>Redis Caching:</strong> Frequently accessed metadata
+                cached in memory
+              </li>
+              <li>
+                <strong>Minimal Storage:</strong> Only essential metadata stored
+                (no message content)
+              </li>
+            </ul>
+          </div>
+
+          <div class="performance-metric">
+            <h3>📎 Media Handling at Scale</h3>
+            <ul>
+              <li>
+                <strong>CDN Integration:</strong> Facebook's global CDN for
+                media delivery
+              </li>
+              <li>
+                <strong>Aggressive Compression:</strong> Advanced algorithms
+                reduce file sizes
+              </li>
+              <li>
+                <strong>Progressive Upload:</strong> Large files uploaded in
+                chunks
+              </li>
+              <li>
+                <strong>Format Optimization:</strong> Automatic conversion for
+                efficiency
+              </li>
+            </ul>
+          </div>
+
+          <div class="performance-metric">
+            <h3>⚖️ Load Management</h3>
+            <ul>
+              <li>
+                <strong>Auto-Scaling:</strong> Dynamic server provisioning based
+                on demand
+              </li>
+              <li>
+                <strong>Rate Limiting:</strong> Prevent abuse and ensure fair
+                usage
+              </li>
+              <li>
+                <strong>Circuit Breakers:</strong> Graceful degradation during
+                system failures
+              </li>
+              <li>
+                <strong>Health Monitoring:</strong> Real-time system performance
+                tracking
+              </li>
+            </ul>
+          </div>
+
+          <h2>Performance Optimization Strategies</h2>
+          <ul>
+            <li>
+              <strong>Message Batching:</strong> Multiple messages sent in
+              single requests
+            </li>
+            <li>
+              <strong>Persistent Connections:</strong> WebSocket/long-polling
+              for real-time updates
+            </li>
+            <li>
+              <strong>Client-Side Caching:</strong> Local storage of recent
+              conversations
+            </li>
+            <li>
+              <strong>Lazy Loading:</strong> Load messages/media on demand
+            </li>
+            <li>
+              <strong>Background Sync:</strong> Smart synchronization when app
+              becomes active
+            </li>
+          </ul>
+        </div>
+
+        <!-- Slide 9: Key Insights & Conclusion -->
+        <div class="slide">
+          <div class="slide-number">9/9</div>
+          <h1>Key Insights & Technical Excellence</h1>
+
+          <h2>🎯 What Makes WhatsApp Unique</h2>
+
+          <div class="highlight-box">
+            <h3>Privacy-First Architecture</h3>
+            <p>
+              WhatsApp built their entire system around user privacy, choosing
+              technical complexity over convenience. This architectural decision
+              reflects their core values and builds unmatched user trust.
+            </p>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <h3>🔒 Security</h3>
+              <p>
+                <strong>Trade-off:</strong> End-to-end encryption means some
+                features are limited, but user privacy is guaranteed
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3>⚡ Efficiency</h3>
+              <p>
+                <strong>Achievement:</strong> 2+ billion users served with
+                minimal infrastructure using smart architectural choices
+              </p>
+            </div>
+            <div class="feature-card">
+              <h3>🎯 Focus</h3>
+              <p>
+                <strong>Philosophy:</strong> Simple, reliable messaging over
+                feature bloat ensures consistent user experience
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="navigation">
+        <button class="nav-btn" id="prevBtn" disabled>Previous</button>
+        <button class="nav-btn" id="nextBtn">Next</button>
+      </div>
+    </div>
+
+    <script>
+      // Presentation functionality
+      document.addEventListener("DOMContentLoaded", function () {
+        const slides = document.querySelectorAll(".slide");
+        const prevBtn = document.getElementById("prevBtn");
+        const nextBtn = document.getElementById("nextBtn");
+        const prevSlideBtn = document.getElementById("prevSlide");
+        const nextSlideBtn = document.getElementById("nextSlide");
+        const progressBar = document.getElementById("progressBar");
+        const slideIndicators = document.getElementById("slideIndicators");
+        let currentSlide = 0;
+
+        // Create slide indicators
+        slides.forEach((slide, index) => {
+          const indicator = document.createElement("div");
+          indicator.className = "slide-indicator";
+          if (index === 0) indicator.classList.add("active");
+          indicator.addEventListener("click", () => goToSlide(index));
+          slideIndicators.appendChild(indicator);
+        });
+
+        // Update progress bar
+        function updateProgressBar() {
+          const progress = ((currentSlide + 1) / slides.length) * 100;
+          progressBar.style.width = `${progress}%`;
+        }
+
+        // Update slide indicators
+        function updateIndicators() {
+          document
+            .querySelectorAll(".slide-indicator")
+            .forEach((indicator, index) => {
+              indicator.classList.toggle("active", index === currentSlide);
+            });
+        }
+
+        // Go to specific slide
+        function goToSlide(n) {
+          slides[currentSlide].classList.remove("active");
+          currentSlide = n;
+          slides[currentSlide].classList.add("active");
+
+          // Scroll to top of the slide
+          document.querySelector(".slides-wrapper").scrollTop = 0;
+
+          // Update buttons
+          prevBtn.disabled = currentSlide === 0;
+          nextBtn.disabled = currentSlide === slides.length - 1;
+          prevSlideBtn.disabled = currentSlide === 0;
+          nextSlideBtn.disabled = currentSlide === slides.length - 1;
+
+          // Update progress and indicators
+          updateProgressBar();
+          updateIndicators();
+        }
+
+        // Next slide
+        function nextSlide() {
+          if (currentSlide < slides.length - 1) {
+            goToSlide(currentSlide + 1);
+          }
+        }
+
+        // Previous slide
+        function prevSlide() {
+          if (currentSlide > 0) {
+            goToSlide(currentSlide - 1);
+          }
+        }
+
+        // Event listeners
+        prevBtn.addEventListener("click", prevSlide);
+        nextBtn.addEventListener("click", nextSlide);
+        prevSlideBtn.addEventListener("click", prevSlide);
+        nextSlideBtn.addEventListener("click", nextSlide);
+
+        // Keyboard navigation
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "ArrowRight" || e.key === " ") {
+            nextSlide();
+          } else if (e.key === "ArrowLeft") {
+            prevSlide();
+          }
+        });
+
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener("touchstart", function (e) {
+          touchStartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener("touchend", function (e) {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        });
+
+        function handleSwipe() {
+          const swipeThreshold = 50;
+
+          if (touchEndX < touchStartX - swipeThreshold) {
+            // Swipe left - next slide
+            nextSlide();
+          } else if (touchEndX > touchStartX + swipeThreshold) {
+            // Swipe right - previous slide
+            prevSlide();
+          }
+        }
+
+        // Initialize
+        updateProgressBar();
+        updateIndicators();
+      });
+    </script>
+  </body>
+</html>
